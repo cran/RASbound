@@ -1,0 +1,117 @@
+---
+title: "A worked example: a 57 x 57 input-output-style table"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{A worked example: a 57 x 57 input-output-style table}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(RASbound)
+```
+
+This vignette applies the package to the kind of problem it was written
+for. A square, non-negative, input-output-style table must be adjusted to
+new row and column totals, and every cell must stay inside a plausible
+range. The data come from a real application. They are **rounded to
+integers** and ship with the package in `inst/extdata`.
+
+```{r data}
+read_mat <- function(f) {
+  as.matrix(utils::read.csv(system.file("extdata", f, package = "RASbound"),
+                            header = FALSE))
+}
+x0 <- unname(read_mat("example_x0.csv"))
+lower <- unname(read_mat("example_lower.csv"))
+upper <- unname(read_mat("example_upper.csv"))
+row_targets <- read_mat("example_row_targets.csv")[, 1]
+col_targets <- read_mat("example_col_targets.csv")[, 1]
+
+dim(x0)
+c(sum(row_targets), sum(col_targets))
+sum(x0 == 0)                  # exact zeros in the seed
+sum(lower > 0)                # cells with a positive lower bound
+tail(row_targets, 3)          # the last two rows (and columns) have target 0
+```
+
+This input is demanding for three reasons. Many cells have a positive
+lower bound as well as an upper bound. The seed contains exact zeros. And
+the last two rows and columns have a target of exactly 0.
+
+## Hard-freeze variants
+
+```{r fit}
+args <- list(x0 = x0, row_targets = row_targets, col_targets = col_targets,
+             lower = lower, upper = upper,
+             tol = 1e-6, max_iter = 1000, max_outer = 500)
+fit_sim <- suppressWarnings(do.call(bras_freeze_sim, args))
+fit_seq <- suppressWarnings(do.call(bras_freeze_seq, args))
+fit_hyb <- suppressWarnings(do.call(bras_freeze_hybrid, args))
+
+sapply(list(sim = fit_sim, seq = fit_seq, hybrid = fit_hyb),
+       function(f) c(converged = f$converged,
+                     feasible = f$feasible,
+                     n_fixed = nrow(f$fixed_cells)))
+```
+
+Every cell should respect its range, and the margins should be matched:
+
+```{r check}
+ok <- function(f) c(
+  within_bounds = all(f$matrix >= lower - 1e-6 & f$matrix <= upper + 1e-6),
+  max_margin_error = max(f$diagnostics$row_margin_error,
+                         f$diagnostics$col_margin_error)
+)
+sapply(list(sim = fit_sim, seq = fit_seq, hybrid = fit_hyb), ok)
+```
+
+The variants fix cells in a different order. When several bounds bind at
+once, they can return slightly different matrices. This is how far apart
+they are:
+
+```{r diff}
+max(abs(fit_sim$matrix - fit_seq$matrix))
+max(abs(fit_sim$matrix - fit_hyb$matrix))
+```
+
+## Where the bounds bind
+
+`plot()` shows the fitted matrix and marks the cells that were fixed at a
+bound. An upward triangle is a cell at its upper bound, and a downward
+triangle is a cell at its lower bound:
+
+```{r plot, fig.width = 5, fig.height = 5}
+plot(fit_seq)
+```
+
+The exact cells and values are in `fit_seq$fixed_cells`. If your matrix has
+row and column names, `plot()` shows them as axis labels. See
+`?plot.bras_fit` for how to read the colours.
+
+## The `survey` wrappers on the same problem
+
+The `bras_calibrate_*()` wrappers remove the rows and columns with a zero
+target before calling `survey`, and put them back as zeros afterwards.
+On the original, unrounded version of this table, all three wrappers
+still failed inside `survey::calibrate()`. The cause is not known. This is
+what they return on the rounded data:
+
+```{r calibrate, eval = requireNamespace("survey", quietly = TRUE) && requireNamespace("MASS", quietly = TRUE)}
+try_wrapper <- function(f) {
+  tryCatch({
+    fit <- suppressWarnings(f(x0, row_targets, col_targets,
+                              lower = lower, upper = upper))
+    paste("returned; converged =", fit$converged)
+  }, error = function(e) paste("failed:", substr(conditionMessage(e), 1, 70)))
+}
+c(raking = try_wrapper(bras_calibrate_raking),
+  linear = try_wrapper(bras_calibrate_linear))
+```
+
+If a wrapper fails on a real table like this one, use a
+`bras_freeze_*()` function instead.

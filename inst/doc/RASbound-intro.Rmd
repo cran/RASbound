@@ -1,0 +1,156 @@
+---
+title: "Introduction to RASbound"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to RASbound}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## The problem
+
+Classic RAS adjusts a seed matrix `x0` so that its row and column sums
+match target totals. It is also called biproportional matrix balancing,
+iterative proportional fitting (IPF) or raking.
+
+`RASbound` adds one thing: each cell can have a lower and an upper bound.
+This matters when you update or regionalize an input-output table and
+some cells must stay within a plausible range.
+
+## A minimal example
+
+```{r example}
+library(RASbound)
+
+x0 <- matrix(c(2, 4, 6, 8), nrow = 2)
+row_targets <- c(20, 20)
+col_targets <- c(15, 25)
+upper <- matrix(c(Inf, Inf, 12, Inf), nrow = 2)  # cap cell [1, 2] at 12
+
+fit <- bras_freeze_sim(x0, row_targets, col_targets, upper = upper)
+fit
+fit$matrix
+summary(fit)
+```
+
+All functions take the same arguments and return the same kind of object
+(`bras_fit`), so you can swap one for another and compare the results.
+
+## Which function should I use?
+
+| Function | Bound handling | Cells frozen permanently? | Diagnoses infeasibility? |
+|:---|:---|:---:|:---:|
+| `ras()` | none (classic RAS) | -- | -- |
+| `bras_freeze_sim()` | fixes **all** violating cells per pass | yes | yes |
+| `bras_freeze_seq()` | fixes only the **most extreme** violating cell per pass | yes | yes |
+| `bras_freeze_hybrid()` | simultaneous, with sequential fallback | yes | yes |
+| `bras_naive()` | reclamps every cell every pass (reference) | no | no |
+| `bras_soft()` | clamps and redistributes by remaining headroom (reference) | no | no |
+| `bras_cap_iter()` | clamps and rescales uncapped cells uniformly (reference) | no | no |
+| `bras_calibrate_logit()` | wraps `survey::calibrate(calfun = "logit")` | n/a | no |
+| `bras_calibrate_linear()` | wraps `survey::calibrate(calfun = "linear")` | no | no |
+| `bras_calibrate_raking()` | wraps `survey::calibrate(calfun = "raking")` | no | no |
+
+For adjusting real data, use `bras_freeze_hybrid()`. The rest of this
+page explains the three groups of functions.
+
+## The hard-freeze family
+
+`bras_freeze_sim()`, `bras_freeze_seq()` and `bras_freeze_hybrid()` are
+the functions to use on real data. They all work in the same way:
+
+1. Solve the classic RAS problem on the cells that are still free.
+2. Find the free cells that ended up outside `[lower, upper]`.
+3. Fix those cells at the bound they violated.
+4. Subtract the fixed values from the row and column targets.
+5. Repeat on the smaller problem that remains.
+
+A fixed cell is never changed again, and the residual targets are
+recomputed exactly. So when the process finishes, the row and column
+totals are matched exactly and no cell is outside its bounds.
+
+The three functions differ in how many cells they fix per pass:
+
+* `bras_freeze_sim()` fixes every violating cell at once. It usually needs
+  the fewest passes.
+* `bras_freeze_seq()` fixes only the most extreme violating cell. It is
+  slower, but it never fixes a cell that was not needed. Use it when you
+  want the most conservative result, for example for an audit, or when
+  `bras_freeze_sim()` reports infeasibility that may be caused by fixing
+  too many cells together.
+* `bras_freeze_hybrid()` starts like `bras_freeze_sim()`. If fixing all
+  violators in one pass would make the rest of the problem infeasible, it
+  repeats that pass fixing only the most extreme cell. If the run still
+  ends without a solution, it retries the whole problem with
+  `bras_freeze_seq()` before giving up. This is the recommended default.
+
+If the bounds cannot be reconciled with the targets, these functions
+raise an error (`on_infeasible = "error"`). `fit$diagnostics$infeasible_at`
+shows which rows and columns are involved. If a solution probably exists
+but `max_outer` ran out, you get a warning and `converged = FALSE`. In
+that case, increase `max_outer`. See `?bras_fit` to tell the two cases
+apart in code.
+
+## The reference variants
+
+`ras()`, `bras_naive()`, `bras_soft()` and `bras_cap_iter()` are there
+for comparison, not for production use.
+
+* `ras()` is plain RAS with no bounds. It shows what the matrix looks
+  like without constraints.
+* `bras_naive()` reclamps every cell to its bounds after each scaling
+  step. A clamped cell can be pushed outside its bound again by the next
+  correction, so it may not reach the exact margins even when a valid
+  solution exists. It is a deliberately weak baseline.
+* `bras_soft()` never freezes cells. After clamping, it spreads the
+  excess or deficit over the other free cells of the same row or column,
+  in proportion to their remaining headroom.
+* `bras_cap_iter()` also clamps and compensates without freezing, but it
+  rescales the uncapped cells uniformly instead of by headroom.
+
+These three bounded variants do not guarantee exact margins or respected
+bounds. They are there so that a simulation study can measure how much
+that guarantee is worth.
+
+## The `survey` wrappers
+
+`bras_calibrate_logit()`, `bras_calibrate_linear()` and
+`bras_calibrate_raking()` are thin wrappers around `survey::calibrate()`.
+They let you compare against a well-known calibration engine without
+leaving the `RASbound` interface. They require the `survey` package.
+
+They solve the problem in a different way from the freeze family. They
+optimize the whole matrix in one step, with the Newton-Raphson algorithm
+of Deville, Saerndal and Sautory (1993). Bounds are enforced as real
+constraints inside that step. The three wrappers differ only in the
+distance function they minimize:
+
+* `bras_calibrate_raking()` minimizes the same multiplicative distance as
+  classic RAS. Without bounds, it gives the same matrix as `ras()`. This
+  is why it exists: it is the external result that should match this
+  package's own engine.
+* `bras_calibrate_linear()` and `bras_calibrate_logit()` use other
+  distances. They match the same margins but give a different matrix.
+  That is still a valid solution, just not the classic RAS one.
+* `bras_calibrate_logit()` needs a finite bound on every cell. The other
+  two accept `Inf`.
+
+All three compute `converged` from the actual margin error of the
+returned matrix. See `?bras_calibrate_logit` for the meaning of
+`feasible` in each case.
+
+There is no wrapper for `ipf::rake()`. Its code needs a Rust toolchain to
+install, which is a heavy requirement for one comparator.
+
+## Where to go next
+
+* `vignette("RASbound-example")` applies the package to a real 57 x 57
+  input-output-style table.
+* `vignette("RASbound-diagnostics")` shows how to read `fixed_cells` and
+  `diagnostics`, how to tell infeasibility from running out of
+  iterations, how to handle cells that must be exactly zero, and how to
+  compare variants on the same problem.

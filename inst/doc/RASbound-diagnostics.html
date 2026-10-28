@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Advanced diagnostics</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Advanced diagnostics</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(RASbound)</span></code></pre></div>
+<p>This vignette is for when you already know which function to call
+(see <code>vignette(&quot;RASbound-intro&quot;)</code>) and want to understand its
+result. It shows how to:</p>
+<ul>
+<li>read <code>fixed_cells</code>;</li>
+<li>diagnose infeasibility, and tell it apart from running out of
+iterations;</li>
+<li>handle cells that must be exactly zero;</li>
+<li>compare variants on the same problem;</li>
+<li>recognize a stall and a few cases where a variant fails.</li>
+</ul>
+<div id="a-running-example" class="section level2">
+<h2>A running example</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>x0 <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">9</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>               <span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">1</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>               <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">7</span>), <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>row_targets <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">25</span>, <span class="dv">20</span>, <span class="dv">25</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>col_targets <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">20</span>, <span class="dv">25</span>, <span class="dv">25</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>upper <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="cn">Inf</span>, <span class="cn">Inf</span>, <span class="dv">6</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>                  <span class="cn">Inf</span>, <span class="cn">Inf</span>, <span class="cn">Inf</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                  <span class="cn">Inf</span>, <span class="cn">Inf</span>, <span class="cn">Inf</span>), <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)  <span class="co"># cap cell [1, 3] at 6</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">bras_freeze_hybrid</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper)</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>fit</span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; &lt;bras_fit&gt; method: freeze_hybrid </span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt;   converged: TRUE  | feasible: TRUE  | outer passes: 2 </span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;   cells fixed at a bound: 1</span></span></code></pre></div>
+</div>
+<div id="reading-fixed_cells" class="section level2">
+<h2>Reading <code>fixed_cells</code></h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>fit<span class="sc">$</span>fixed_cells</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt;     row col bound value outer_pass</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; row   1   3 upper     6          1</span></span></code></pre></div>
+<p>Each row is a cell that was pinned to a bound during the fit. The
+column <code>outer_pass</code> says when. Cells fixed in pass 1 were the
+clearest violations of the unconstrained solution. Cells fixed in later
+passes became binding only after earlier fixations changed the problem
+that was left.</p>
+<p>This column is your audit trail. It shows that a cell reached its
+bound because of the equilibrium of the free problem at that point, not
+because of an arbitrary early choice.</p>
+<p>If a cell binds when you did not expect it to, look at the data
+first. Usually the seed value, or the target of its row or column, is
+not consistent with the bounds you set.</p>
+</div>
+<div id="diagnosing-infeasibility" class="section level2">
+<h2>Diagnosing infeasibility</h2>
+<p>Sometimes no matrix satisfies both the targets and the bounds. By
+default (<code>on_infeasible = &quot;error&quot;</code>) the function stops with a
+message. The same information is also available in the result:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>too_tight <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">1</span>, <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">ncol =</span> <span class="dv">3</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>fit_bad <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(  <span class="co"># x0 is also above `upper` here; that is not the point</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">bras_freeze_sim</span>(x0, row_targets, col_targets, <span class="at">upper =</span> too_tight,</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>                  <span class="at">on_infeasible =</span> <span class="st">&quot;warning&quot;</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>fit_bad<span class="sc">$</span>feasible</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>fit_bad<span class="sc">$</span>diagnostics<span class="sc">$</span>infeasible_at</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; $rows</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; [1] 1 2 3</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; $cols</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; [1] 1 2 3</span></span></code></pre></div>
+<p><code>infeasible_at$rows</code> and <code>infeasible_at$cols</code>
+list the margins that could not be met. Start there instead of scanning
+the whole matrix. There are two common causes.</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>The bounds are too tight for a row or column.</strong>
+The sum of <code>upper</code> over its cells is smaller than its target,
+or the sum of <code>lower</code> is larger. Check it directly:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">rowSums</span>(too_tight)  <span class="co"># every row can reach at most 3, but the targets are 25, 20, 25</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; [1] 3 3 3</span></span></code></pre></div></li>
+<li><p><strong>A cell that has to contribute is seeded at zero.</strong>
+The next section explains this case. The fix is different: change
+<code>x0</code>, not the bounds.</p></li>
+</ol>
+<div id="feasible-true-but-converged-false" class="section level3">
+<h3><code>feasible = TRUE</code> but <code>converged = FALSE</code></h3>
+<p>This is not the same as proven infeasibility. It means the outer loop
+reached <code>max_outer</code> before it found a solution or ruled one
+out:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>fit_slow <span class="ot">&lt;-</span> <span class="fu">bras_freeze_sim</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper,</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>                            <span class="at">max_outer =</span> <span class="dv">1</span>, <span class="at">on_infeasible =</span> <span class="st">&quot;warning&quot;</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; Warning: Stopped after 1 outer pass(es) without fully resolving bound</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; violations. The returned matrix may still contain cells outside their bounds;</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; consider increasing `max_outer`.</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>fit_slow<span class="sc">$</span>feasible    <span class="co"># TRUE: not proven infeasible</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>fit_slow<span class="sc">$</span>converged   <span class="co"># FALSE: it just did not finish</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
+<p>Here a larger <code>max_outer</code> may solve it. See
+<code>?bras_fit</code> for the full distinction.</p>
+</div>
+</div>
+<div id="cells-that-must-be-exactly-zero" class="section level2">
+<h2>Cells that must be exactly zero</h2>
+<p>You do not need <code>lower = upper = 0</code> for a cell that must
+be zero. Every variant scales cells multiplicatively, so a cell with
+<code>x0[i, j] = 0</code> stays exactly 0:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>x0_with_zero <span class="ot">&lt;-</span> x0</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>x0_with_zero[<span class="dv">1</span>, <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>fit_zero <span class="ot">&lt;-</span> <span class="fu">bras_freeze_sim</span>(x0_with_zero, row_targets, col_targets)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>fit_zero<span class="sc">$</span>matrix[<span class="dv">1</span>, <span class="dv">1</span>]  <span class="co"># exactly 0</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span></code></pre></div>
+<p>Two points to keep in mind.</p>
+<ul>
+<li><p><strong>A seed outside its own <code>[lower, upper]</code> range
+is moved to the nearest bound, with a warning.</strong> For most cells
+this only saves some work. For a cell seeded at 0 with a positive
+<code>lower</code>, it is necessary, because no iteration could move the
+cell away from zero:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>bad_lower <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, <span class="dv">3</span>, <span class="dv">3</span>); bad_lower[<span class="dv">1</span>, <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>fit_imputed <span class="ot">&lt;-</span> <span class="fu">bras_freeze_sim</span>(x0_with_zero, row_targets, col_targets,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                               <span class="at">lower =</span> bad_lower)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,1)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. For cell(s) below `lower` (including</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; any seeded at exactly 0 with a positive `lower`), this substitution is what</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; makes the cell solvable at all, not just a speed optimization. If this was</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; unintentional -- a mismatch between `x0` and the bounds you meant to set --</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; double-check your inputs; the final result may otherwise reflect a seed value</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt; you did not intend.</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>fit_imputed<span class="sc">$</span>matrix[<span class="dv">1</span>, <span class="dv">1</span>]  <span class="co"># at least 5, not 0</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt; [1] 7.015922</span></span></code></pre></div>
+<p>Read the warning as a prompt to check your inputs. It usually means
+that <code>x0</code> and the bounds do not agree.</p></li>
+<li><p><strong>A row or column that depends on zero-seeded cells can be
+infeasible even with the loosest bounds</strong>
+(<code>lower = 0</code>, <code>upper = Inf</code>), because those cells
+cannot contribute anything. The feasibility check of the
+<code>bras_freeze_*()</code> functions knows this: it treats the
+achievable range of a zero-seeded cell as <code>{0}</code>. Such a case
+is reported like any other infeasibility.</p></li>
+</ul>
+<p>If a cell is zero in your seed only because of a data problem
+(rounding, suppression, a missing value), remember that RAS can never
+make it positive. This holds for every form of RAS, bounded or not. If
+the cell should be able to become positive, seed it with a small
+positive value instead of 0.</p>
+</div>
+<div id="comparing-variants-on-the-same-problem" class="section level2">
+<h2>Comparing variants on the same problem</h2>
+<p>All functions return the same <code>bras_fit</code> structure, so
+comparing them is direct. This is useful as a sanity check, and it is
+what a simulation study would automate:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>fits <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">freeze_sim  =</span> <span class="fu">bras_freeze_sim</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper),</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">freeze_seq  =</span> <span class="fu">bras_freeze_seq</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">naive       =</span> <span class="fu">bras_naive</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper),</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">soft        =</span> <span class="fu">bras_soft</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper),</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">cap_iter    =</span> <span class="fu">bras_cap_iter</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>)</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb9-29"><a href="#cb9-29" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb9-30"><a href="#cb9-30" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb9-31"><a href="#cb9-31" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb9-32"><a href="#cb9-32" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>fits<span class="sc">$</span>calibrate_raking <span class="ot">&lt;-</span> <span class="fu">bras_calibrate_raking</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>fits<span class="sc">$</span>calibrate_linear <span class="ot">&lt;-</span> <span class="fu">bras_calibrate_linear</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper)</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co"># bras_calibrate_logit() is left out on purpose. The section</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co"># &quot;When bras_calibrate_logit() fails&quot; below uses this same problem.</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="at">method    =</span> <span class="fu">names</span>(fits),</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">converged =</span> <span class="fu">vapply</span>(fits, <span class="cf">function</span>(f) f<span class="sc">$</span>converged, <span class="fu">logical</span>(<span class="dv">1</span>)),</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="at">max_row_err =</span> <span class="fu">vapply</span>(fits, <span class="cf">function</span>(f) <span class="fu">max</span>(f<span class="sc">$</span>diagnostics<span class="sc">$</span>row_margin_error), <span class="fu">numeric</span>(<span class="dv">1</span>)),</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">max_col_err =</span> <span class="fu">vapply</span>(fits, <span class="cf">function</span>(f) <span class="fu">max</span>(f<span class="sc">$</span>diagnostics<span class="sc">$</span>col_margin_error), <span class="fu">numeric</span>(<span class="dv">1</span>)),</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="at">dist_from_seed =</span> <span class="fu">vapply</span>(fits, <span class="cf">function</span>(f) <span class="fu">sum</span>(<span class="fu">abs</span>(f<span class="sc">$</span>matrix <span class="sc">-</span> x0)), <span class="fu">numeric</span>(<span class="dv">1</span>))</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>)</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt;                            method converged  max_row_err  max_col_err</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; freeze_sim             freeze_sim      TRUE 7.531138e-09 3.552714e-15</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; freeze_seq             freeze_seq      TRUE 7.531138e-09 3.552714e-15</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; naive                       naive      TRUE 6.700361e-09 4.934506e-09</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; soft                         soft      TRUE 6.912888e-09 3.552714e-15</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt; cap_iter                 cap_iter      TRUE 7.531138e-09 0.000000e+00</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt; calibrate_raking calibrate_raking      TRUE 6.883027e-11 3.698375e-11</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt; calibrate_linear calibrate_linear      TRUE 7.105427e-15 2.131628e-14</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt;                  dist_from_seed</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt; freeze_sim             31.35153</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="co">#&gt; freeze_seq             31.35153</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co">#&gt; naive                  31.35153</span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co">#&gt; soft                   31.00000</span></span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co">#&gt; cap_iter               31.35153</span></span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co">#&gt; calibrate_raking       31.35153</span></span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a><span class="co">#&gt; calibrate_linear       32.03954</span></span></code></pre></div>
+<p><code>dist_from_seed</code> is the L1 distance to the seed. It is a
+quick measure of how much each method changed the data. It is not a
+substitute for the divergence measures of a proper simulation study.</p>
+<p>Do not read this column as a ranking of all methods. The freeze
+family, <code>bras_naive()</code>, <code>bras_soft()</code>,
+<code>bras_cap_iter()</code> and <code>bras_calibrate_raking()</code>
+all change the data by multiplicative scaling, like classic RAS.
+<code>bras_calibrate_linear()</code> minimizes a least-squares distance.
+A smaller <code>dist_from_seed</code> for it does not mean it is closer
+to the right answer. It means that distance function chose a different
+matrix. Which distance to minimize is a modelling choice. Use
+<code>dist_from_seed</code> only to compare methods of the same
+family.</p>
+</div>
+<div id="bras_calibrate_linear-and-bras_calibrate_raking-give-different-matrices" class="section level2">
+<h2><code>bras_calibrate_linear()</code> and
+<code>bras_calibrate_raking()</code> give different matrices</h2>
+<p>Both wrappers meet the same margins, but they do not return the same
+matrix. This is a reproducible case, with a fixed seed. It is the case
+used in the package’s own cross-validation test
+(<code>tests/testthat/test-crossvalidation-and-properties.R</code>):</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">20260919</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>x0_cmp <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">round</span>(<span class="fu">runif</span>(<span class="dv">16</span>, <span class="dv">1</span>, <span class="dv">20</span>)), <span class="at">nrow =</span> <span class="dv">4</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>row_targets_cmp <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(<span class="dv">4</span>, <span class="dv">80</span>, <span class="dv">150</span>))</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>props <span class="ot">&lt;-</span> <span class="fu">runif</span>(<span class="dv">4</span>); props <span class="ot">&lt;-</span> props <span class="sc">/</span> <span class="fu">sum</span>(props)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>col_targets_cmp <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">sum</span>(row_targets_cmp) <span class="sc">*</span> props)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>col_targets_cmp[<span class="dv">4</span>] <span class="ot">&lt;-</span> <span class="fu">sum</span>(row_targets_cmp) <span class="sc">-</span> <span class="fu">sum</span>(col_targets_cmp[<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>])</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>fit_ras_cmp    <span class="ot">&lt;-</span> <span class="fu">ras</span>(x0_cmp, row_targets_cmp, col_targets_cmp, <span class="at">tol =</span> <span class="fl">1e-10</span>, <span class="at">max_iter =</span> <span class="dv">500</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>fit_raking_cmp <span class="ot">&lt;-</span> <span class="fu">bras_calibrate_raking</span>(x0_cmp, row_targets_cmp, col_targets_cmp)</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>fit_linear_cmp <span class="ot">&lt;-</span> <span class="fu">bras_calibrate_linear</span>(x0_cmp, row_targets_cmp, col_targets_cmp)</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co"># raking is very close to our own engine (same distance function):</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="fu">max</span>(<span class="fu">abs</span>(fit_ras_cmp<span class="sc">$</span>matrix <span class="sc">-</span> fit_raking_cmp<span class="sc">$</span>matrix))</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt; [1] 5.457679e-11</span></span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co"># linear is not, although it meets the same margins to the same tolerance:</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="fu">max</span>(<span class="fu">abs</span>(fit_ras_cmp<span class="sc">$</span>matrix <span class="sc">-</span> fit_linear_cmp<span class="sc">$</span>matrix))</span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#&gt; [1] 12.12134</span></span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a><span class="fu">rbind</span>(<span class="at">row_ras =</span> <span class="fu">rowSums</span>(fit_ras_cmp<span class="sc">$</span>matrix), <span class="at">row_linear =</span> <span class="fu">rowSums</span>(fit_linear_cmp<span class="sc">$</span>matrix))</span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a><span class="co">#&gt;            [,1] [,2] [,3] [,4]</span></span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a><span class="co">#&gt; row_ras      92  121  139  135</span></span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a><span class="co">#&gt; row_linear   92  121  139  135</span></span></code></pre></div>
+<p><code>bras_calibrate_raking()</code> agrees with <code>ras()</code>
+up to numerical tolerance. This is expected, because both minimize the
+same multiplicative distance. <code>bras_calibrate_linear()</code> meets
+the same margins, but some of its cells differ a lot from the
+<code>ras()</code> result. This is not numerical noise: its
+least-squares distance prefers another matrix.</p>
+<p>Both matrices are correct solutions of the constraints. They differ
+in which notion of “closest to the seed” selects among all valid
+matrices. Which one you need depends on what the adjustment is supposed
+to represent. <code>RASbound</code> cannot decide that for you.</p>
+</div>
+<div id="when-bras_calibrate_logit-fails" class="section level2">
+<h2>When <code>bras_calibrate_logit()</code> fails</h2>
+<p><code>bras_calibrate_logit()</code> was left out of the comparison
+above on purpose. On this problem it fails:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Self-contained: the running example again, so this chunk gives the same</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="co"># result in whatever order the document is run.</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>x0 <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">9</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>               <span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">1</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>               <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">7</span>), <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>row_targets <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">25</span>, <span class="dv">20</span>, <span class="dv">25</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>col_targets <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">20</span>, <span class="dv">25</span>, <span class="dv">25</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>upper <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="cn">Inf</span>, <span class="cn">Inf</span>, <span class="dv">6</span>,</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>                  <span class="cn">Inf</span>, <span class="cn">Inf</span>, <span class="cn">Inf</span>,</span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>                  <span class="cn">Inf</span>, <span class="cn">Inf</span>, <span class="cn">Inf</span>), <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="fu">bras_calibrate_logit</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper)</span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 1 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (1,3)); imputed to the nearest bound before solving, as if</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="co">#&gt; that value had been supplied as the seed. If this was unintentional -- a</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co">#&gt; mismatch between `x0` and the bounds you meant to set -- double-check your</span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="co">#&gt; inputs; the final result may otherwise reflect a seed value you did not intend.</span></span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="co">#&gt; Error:</span></span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="co">#&gt; ! survey::calibrate(calfun = &quot;logit&quot;) failed: Valores infinitos o faltantes en &#39;x&#39;. This calibration function requires finite bounds and can be numerically fragile when most cells are only loosely bounded (see the &quot;Logit calibration cannot represent an unbounded cell&quot; section of ?bras_calibrate_logit). Try increasing `unbounded_mult`, switching to bras_calibrate_linear() instead -- it does not require finite bounds and does not need this substitution -- or supplying a tighter, meaningful `upper` yourself.</span></span></code></pre></div>
+<p>The reason is the following. The bound <code>upper[1, 3] = 6</code>
+is tight, and the seed <code>x0[1, 3] = 9</code> is above it. The seed
+is therefore moved to exactly 6 before the calibration starts. The logit
+calibration needs finite bounds, so every <code>Inf</code> is replaced
+by <code>unbounded_mult * max(row_targets, col_targets)</code>. By
+default that is <code>20 * 25 = 500</code>. One cell sits on a real
+bound of 6 next to cells with a bound of 500, about 80 times larger.
+With such different scales, the Newton-Raphson solve of the logit
+distance can diverge, which gives the error above.</p>
+<p>In practice, the automatic replacement of <code>Inf</code> works well
+when the bounds are on a similar scale, or when only a few cells really
+matter. It does not replace real finite bounds when you know that some
+cells need a tight limit. If you meet this failure on your own data, use
+<code>bras_calibrate_raking()</code> or
+<code>bras_calibrate_linear()</code>. Both accept <code>Inf</code> and
+need no replacement. Or use one of the <code>bras_freeze_*()</code>
+functions.</p>
+</div>
+<div id="when-bras_freeze_hybrids-per-pass-fallback-is-not-enough" class="section level2">
+<h2>When <code>bras_freeze_hybrid()</code>’s per-pass fallback is not
+enough</h2>
+<p><code>bras_freeze_hybrid()</code> fixes all violating cells at once.
+If that would make a single pass infeasible, it falls back to sequential
+fixation for that pass only. This per-pass fallback does not make it as
+robust as <code>bras_freeze_seq()</code> in every case, as this real
+input shows:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>x0 <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">29</span>, <span class="dv">16</span>, <span class="dv">22</span>,</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>               <span class="dv">14</span>,  <span class="dv">4</span>, <span class="dv">20</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>               <span class="dv">27</span>, <span class="dv">20</span>, <span class="dv">23</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>               <span class="dv">29</span>, <span class="dv">23</span>, <span class="dv">13</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>               <span class="dv">26</span>, <span class="dv">20</span>, <span class="dv">12</span>), <span class="at">nrow =</span> <span class="dv">5</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>row_targets <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">91</span>, <span class="dv">45</span>, <span class="dv">67</span>, <span class="dv">71</span>, <span class="dv">70</span>)</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>col_targets <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">133</span>, <span class="dv">89</span>, <span class="dv">122</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>upper <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">40</span>, <span class="dv">47</span>, <span class="dv">27</span>,</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>                  <span class="dv">17</span>, <span class="dv">19</span>, <span class="dv">13</span>,</span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>                  <span class="dv">44</span>, <span class="dv">16</span>, <span class="dv">17</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>                  <span class="dv">29</span>, <span class="dv">19</span>, <span class="dv">41</span>,</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>                  <span class="dv">25</span>, <span class="dv">16</span>, <span class="dv">33</span>), <span class="at">nrow =</span> <span class="dv">5</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>fit_sim <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>  <span class="fu">bras_freeze_sim</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper, <span class="at">on_infeasible =</span> <span class="st">&quot;warning&quot;</span>)</span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>)</span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>fit_seq <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(</span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a>  <span class="fu">bras_freeze_seq</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper, <span class="at">on_infeasible =</span> <span class="st">&quot;warning&quot;</span>)</span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a>)</span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a>fit_hybrid <span class="ot">&lt;-</span> <span class="fu">bras_freeze_hybrid</span>(x0, row_targets, col_targets, <span class="at">upper =</span> upper)</span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 6 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (5,1), (3,2), (4,2), (5,2), (2,3), and 1 more); imputed to the</span></span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a><span class="co">#&gt; nearest bound before solving, as if that value had been supplied as the seed.</span></span>
+<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a><span class="co">#&gt; If this was unintentional -- a mismatch between `x0` and the bounds you meant</span></span>
+<span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a><span class="co">#&gt; to set -- double-check your inputs; the final result may otherwise reflect a</span></span>
+<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a><span class="co">#&gt; seed value you did not intend.</span></span>
+<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a><span class="co">#&gt; Warning: `x0` had 6 cell(s) outside their own [lower, upper] range before any</span></span>
+<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a><span class="co">#&gt; adjustment (e.g. (5,1), (3,2), (4,2), (5,2), (2,3), and 1 more); imputed to the</span></span>
+<span id="cb14-29"><a href="#cb14-29" tabindex="-1"></a><span class="co">#&gt; nearest bound before solving, as if that value had been supplied as the seed.</span></span>
+<span id="cb14-30"><a href="#cb14-30" tabindex="-1"></a><span class="co">#&gt; If this was unintentional -- a mismatch between `x0` and the bounds you meant</span></span>
+<span id="cb14-31"><a href="#cb14-31" tabindex="-1"></a><span class="co">#&gt; to set -- double-check your inputs; the final result may otherwise reflect a</span></span>
+<span id="cb14-32"><a href="#cb14-32" tabindex="-1"></a><span class="co">#&gt; seed value you did not intend.</span></span>
+<span id="cb14-33"><a href="#cb14-33" tabindex="-1"></a></span>
+<span id="cb14-34"><a href="#cb14-34" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb14-35"><a href="#cb14-35" tabindex="-1"></a>  <span class="at">method    =</span> <span class="fu">c</span>(<span class="st">&quot;sim&quot;</span>, <span class="st">&quot;seq&quot;</span>, <span class="st">&quot;hybrid&quot;</span>),</span>
+<span id="cb14-36"><a href="#cb14-36" tabindex="-1"></a>  <span class="at">feasible  =</span> <span class="fu">c</span>(fit_sim<span class="sc">$</span>feasible, fit_seq<span class="sc">$</span>feasible, fit_hybrid<span class="sc">$</span>feasible),</span>
+<span id="cb14-37"><a href="#cb14-37" tabindex="-1"></a>  <span class="at">converged =</span> <span class="fu">c</span>(fit_sim<span class="sc">$</span>converged, fit_seq<span class="sc">$</span>converged, fit_hybrid<span class="sc">$</span>converged),</span>
+<span id="cb14-38"><a href="#cb14-38" tabindex="-1"></a>  <span class="at">n_fixed   =</span> <span class="fu">c</span>(<span class="fu">nrow</span>(fit_sim<span class="sc">$</span>fixed_cells), <span class="fu">nrow</span>(fit_seq<span class="sc">$</span>fixed_cells), <span class="fu">nrow</span>(fit_hybrid<span class="sc">$</span>fixed_cells))</span>
+<span id="cb14-39"><a href="#cb14-39" tabindex="-1"></a>)</span>
+<span id="cb14-40"><a href="#cb14-40" tabindex="-1"></a><span class="co">#&gt;   method feasible converged n_fixed</span></span>
+<span id="cb14-41"><a href="#cb14-41" tabindex="-1"></a><span class="co">#&gt; 1    sim    FALSE     FALSE      10</span></span>
+<span id="cb14-42"><a href="#cb14-42" tabindex="-1"></a><span class="co">#&gt; 2    seq     TRUE      TRUE       5</span></span>
+<span id="cb14-43"><a href="#cb14-43" tabindex="-1"></a><span class="co">#&gt; 3 hybrid     TRUE      TRUE       5</span></span></code></pre></div>
+<p><code>sim</code> ends infeasible after fixing 10 cells, while
+<code>seq</code> solves the problem with only 5. <code>hybrid</code>
+also solves it, with 5 fixed cells. The per-pass fallback alone is not
+enough here. It looks at one pass at a time, and fixing a few more cells
+than necessary in several different passes can add up to an infeasible
+run, even if each pass looked fine on its own.</p>
+<p>For that reason <code>bras_freeze_hybrid()</code> has a second,
+global safety net. If the per-pass approach ends without a solution, it
+retries the whole problem from the start with sequential fixation, as
+<code>bras_freeze_seq()</code> does, before giving up. That is how
+<code>hybrid</code> succeeds here, and <code>fit$method</code> shows
+that this retry was used:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>fit_hybrid<span class="sc">$</span>method</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;freeze_hybrid_retry_sequential&quot;</span></span></code></pre></div>
+</div>
+<div id="a-stall-no-violated-bound-but-the-margins-do-not-match" class="section level2">
+<h2>A stall: no violated bound, but the margins do not match</h2>
+<p>A stall is a third outcome, different from infeasibility and from
+running out of <code>max_outer</code>. It is a known limitation of
+alternating-projection methods such as RAS. After enough cells are
+fixed, the free cells that remain in a row, and the columns they belong
+to, can reach a true fixed point that does not satisfy the margins. The
+margin error stops changing at all across iterations. It is not slow
+convergence.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>x0_stall <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">20</span>,  <span class="dv">5</span>, <span class="dv">49</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>                     <span class="dv">10</span>, <span class="dv">41</span>, <span class="dv">44</span>, <span class="dv">35</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>                     <span class="dv">29</span>,  <span class="dv">9</span>, <span class="dv">24</span>, <span class="dv">18</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>                     <span class="dv">12</span>, <span class="dv">30</span>, <span class="dv">16</span>, <span class="dv">46</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>                     <span class="dv">46</span>, <span class="dv">14</span>,  <span class="dv">6</span>, <span class="dv">10</span>), <span class="at">nrow =</span> <span class="dv">5</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>row_targets_stall <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">95</span>, <span class="dv">120</span>, <span class="dv">63</span>, <span class="dv">67</span>, <span class="dv">134</span>)</span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>col_targets_stall <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">146</span>, <span class="dv">215</span>, <span class="dv">82</span>, <span class="dv">36</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a>upper_stall <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">33</span>, <span class="dv">31</span>, <span class="dv">13</span>, <span class="dv">39</span>,</span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a>                        <span class="dv">35</span>, <span class="dv">41</span>, <span class="dv">13</span>, <span class="dv">46</span>,</span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>                        <span class="dv">17</span>, <span class="dv">34</span>, <span class="dv">48</span>,  <span class="dv">6</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a>                        <span class="dv">23</span>, <span class="dv">53</span>, <span class="dv">51</span>, <span class="dv">35</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a>                        <span class="dv">53</span>, <span class="dv">57</span>, <span class="dv">50</span>, <span class="dv">52</span>), <span class="at">nrow =</span> <span class="dv">5</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a>fit_stall <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(</span>
+<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a>  <span class="fu">bras_freeze_sim</span>(x0_stall, row_targets_stall, col_targets_stall,</span>
+<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a>                  <span class="at">upper =</span> upper_stall, <span class="at">on_infeasible =</span> <span class="st">&quot;warning&quot;</span>)</span>
+<span id="cb16-17"><a href="#cb16-17" tabindex="-1"></a>)</span>
+<span id="cb16-18"><a href="#cb16-18" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" tabindex="-1"></a>fit_stall<span class="sc">$</span>feasible             <span class="co"># TRUE: not proven infeasible</span></span>
+<span id="cb16-20"><a href="#cb16-20" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb16-21"><a href="#cb16-21" tabindex="-1"></a>fit_stall<span class="sc">$</span>converged            <span class="co"># FALSE: the margins are not matched</span></span>
+<span id="cb16-22"><a href="#cb16-22" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span>
+<span id="cb16-23"><a href="#cb16-23" tabindex="-1"></a>fit_stall<span class="sc">$</span>diagnostics<span class="sc">$</span>stalled  <span class="co"># TRUE: a fixed point, not slow progress</span></span>
+<span id="cb16-24"><a href="#cb16-24" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>The feasibility check done before solving cannot detect this. For
+each row and column separately, it checks whether the bounds of the
+remaining free cells can reach the residual target. That condition is
+necessary but not sufficient. A sufficient condition has to hold jointly
+for every subset of rows and columns (it is related to network-flow
+feasibility). That check is harder and is not implemented.</p>
+<p><strong>What to do.</strong> A larger <code>max_iter</code> or
+<code>max_outer</code> will not help, and the warning says so. A stall
+often means that no matrix satisfies the targets and the bounds
+together. The last section of this vignette shows such a case on real
+data, with a simple test that proves it. You can loosen the bounds of
+the rows and columns involved. The largest values of
+<code>fit_stall$diagnostics$row_margin_error</code> and
+<code>col_margin_error</code> point to them. Or you can accept some
+residual mismatch, if that is tolerable for your use.</p>
+</div>
+<div id="a-real-infeasible-case-a-stall-with-no-solution-behind-it" class="section level2">
+<h2>A real infeasible case: a stall with no solution behind it</h2>
+<p>A real 55 x 55 input-output-style table (rounded to integers, and
+shipped in <code>inst/extdata</code> as the
+<code>infeasible_*.csv</code> files) shows a stall on real data, and how
+to confirm that the problem has no solution.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>read_mat <span class="ot">&lt;-</span> <span class="cf">function</span>(f) {</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="fu">as.matrix</span>(utils<span class="sc">::</span><span class="fu">read.csv</span>(<span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>, f, <span class="at">package =</span> <span class="st">&quot;RASbound&quot;</span>),</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>                            <span class="at">header =</span> <span class="cn">FALSE</span>))</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>}</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>x0i <span class="ot">&lt;-</span> <span class="fu">unname</span>(<span class="fu">read_mat</span>(<span class="st">&quot;infeasible_x0.csv&quot;</span>))</span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>upperi <span class="ot">&lt;-</span> <span class="fu">unname</span>(<span class="fu">read_mat</span>(<span class="st">&quot;infeasible_upper.csv&quot;</span>))</span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>rti <span class="ot">&lt;-</span> <span class="fu">read_mat</span>(<span class="st">&quot;infeasible_row_targets.csv&quot;</span>)[, <span class="dv">1</span>]</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a>cti <span class="ot">&lt;-</span> <span class="fu">read_mat</span>(<span class="st">&quot;infeasible_col_targets.csv&quot;</span>)[, <span class="dv">1</span>]</span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a>fit_i <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(</span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a>  <span class="fu">bras_freeze_seq</span>(x0i, rti, cti, <span class="at">upper =</span> upperi,</span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a>                  <span class="at">tol =</span> <span class="fl">1e-6</span>, <span class="at">max_iter =</span> <span class="dv">1000</span>, <span class="at">max_outer =</span> <span class="dv">500</span>,</span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a>                  <span class="at">on_infeasible =</span> <span class="st">&quot;warning&quot;</span>)</span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a>)</span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a>fit_i<span class="sc">$</span>converged</span>
+<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span>
+<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a>fit_i<span class="sc">$</span>diagnostics<span class="sc">$</span>stalled</span>
+<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>The simple feasibility check compares the target of each row and
+column with the total capacity of its cells. It passes here:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>cap <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(x0i <span class="sc">&gt;</span> <span class="dv">0</span>, upperi, <span class="dv">0</span>)   <span class="co"># effective capacity under RAS</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="fu">any</span>(rti <span class="sc">&gt;</span> <span class="fu">rowSums</span>(cap))</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="fu">any</span>(cti <span class="sc">&gt;</span> <span class="fu">colSums</span>(cap))</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
+<p>That check is necessary but not sufficient, because the cells of a
+row also have to respect the column targets. A set of cells can put at
+most <code>min(col_target, capacity)</code> into each column. For row
+13:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>i <span class="ot">&lt;-</span> <span class="dv">13</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>rti[i]                         <span class="co"># what the row must receive</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="co">#&gt; [1] 11737980</span></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="fu">sum</span>(cap[i, ])                  <span class="co"># its raw capacity: it looks sufficient</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="co">#&gt; [1] 13042200</span></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">pmin</span>(cti, cap[i, ]))       <span class="co"># what it can really absorb</span></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co">#&gt; [1] 11270963</span></span></code></pre></div>
+<p>Row 13 must receive more than it can absorb once the column totals
+are taken into account. So no matrix satisfies this problem, and the
+stall is the correct diagnosis. (Solving the transportation problem as a
+linear program or a maximum flow gives the same answer.) If every upper
+limit is relaxed by 25%, the problem has a solution:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>fit_r <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>  <span class="fu">bras_freeze_seq</span>(x0i, rti, cti, <span class="at">upper =</span> <span class="fu">round</span>(upperi <span class="sc">*</span> <span class="fl">1.25</span>),</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>                  <span class="at">tol =</span> <span class="fl">1e-6</span>, <span class="at">max_iter =</span> <span class="dv">1000</span>, <span class="at">max_outer =</span> <span class="dv">500</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>                  <span class="at">on_infeasible =</span> <span class="st">&quot;warning&quot;</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>)</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>fit_r<span class="sc">$</span>converged</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

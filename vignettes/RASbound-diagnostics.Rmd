@@ -1,0 +1,428 @@
+---
+title: "Advanced diagnostics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Advanced diagnostics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(RASbound)
+```
+
+This vignette is for when you already know which function to call (see
+`vignette("RASbound-intro")`) and want to understand its result. It shows
+how to:
+
+* read `fixed_cells`;
+* diagnose infeasibility, and tell it apart from running out of iterations;
+* handle cells that must be exactly zero;
+* compare variants on the same problem;
+* recognize a stall and a few cases where a variant fails.
+
+## A running example
+
+```{r}
+x0 <- matrix(c(2, 4, 9,
+               6, 8, 1,
+               3, 5, 7), nrow = 3, byrow = TRUE)
+row_targets <- c(25, 20, 25)
+col_targets <- c(20, 25, 25)
+upper <- matrix(c(Inf, Inf, 6,
+                  Inf, Inf, Inf,
+                  Inf, Inf, Inf), nrow = 3, byrow = TRUE)  # cap cell [1, 3] at 6
+
+fit <- bras_freeze_hybrid(x0, row_targets, col_targets, upper = upper)
+fit
+```
+
+## Reading `fixed_cells`
+
+```{r}
+fit$fixed_cells
+```
+
+Each row is a cell that was pinned to a bound during the fit. The column
+`outer_pass` says when. Cells fixed in pass 1 were the clearest
+violations of the unconstrained solution. Cells fixed in later passes
+became binding only after earlier fixations changed the problem that was
+left.
+
+This column is your audit trail. It shows that a cell reached its bound
+because of the equilibrium of the free problem at that point, not because
+of an arbitrary early choice.
+
+If a cell binds when you did not expect it to, look at the data first.
+Usually the seed value, or the target of its row or column, is not
+consistent with the bounds you set.
+
+## Diagnosing infeasibility
+
+Sometimes no matrix satisfies both the targets and the bounds. By default
+(`on_infeasible = "error"`) the function stops with a message. The same
+information is also available in the result:
+
+```{r}
+too_tight <- matrix(1, nrow = 3, ncol = 3)
+fit_bad <- suppressWarnings(  # x0 is also above `upper` here; that is not the point
+  bras_freeze_sim(x0, row_targets, col_targets, upper = too_tight,
+                  on_infeasible = "warning")
+)
+fit_bad$feasible
+fit_bad$diagnostics$infeasible_at
+```
+
+`infeasible_at$rows` and `infeasible_at$cols` list the margins that could
+not be met. Start there instead of scanning the whole matrix. There are
+two common causes.
+
+1. **The bounds are too tight for a row or column.** The sum of `upper`
+   over its cells is smaller than its target, or the sum of `lower` is
+   larger. Check it directly:
+   ```{r}
+   rowSums(too_tight)  # every row can reach at most 3, but the targets are 25, 20, 25
+   ```
+2. **A cell that has to contribute is seeded at zero.** The next section
+   explains this case. The fix is different: change `x0`, not the bounds.
+
+### `feasible = TRUE` but `converged = FALSE`
+
+This is not the same as proven infeasibility. It means the outer loop
+reached `max_outer` before it found a solution or ruled one out:
+
+```{r}
+fit_slow <- bras_freeze_sim(x0, row_targets, col_targets, upper = upper,
+                            max_outer = 1, on_infeasible = "warning")
+fit_slow$feasible    # TRUE: not proven infeasible
+fit_slow$converged   # FALSE: it just did not finish
+```
+
+Here a larger `max_outer` may solve it. See `?bras_fit` for the full
+distinction.
+
+## Cells that must be exactly zero
+
+You do not need `lower = upper = 0` for a cell that must be zero. Every
+variant scales cells multiplicatively, so a cell with `x0[i, j] = 0`
+stays exactly 0:
+
+```{r}
+x0_with_zero <- x0
+x0_with_zero[1, 1] <- 0
+fit_zero <- bras_freeze_sim(x0_with_zero, row_targets, col_targets)
+fit_zero$matrix[1, 1]  # exactly 0
+```
+
+Two points to keep in mind.
+
+* **A seed outside its own `[lower, upper]` range is moved to the nearest
+  bound, with a warning.** For most cells this only saves some work. For
+  a cell seeded at 0 with a positive `lower`, it is necessary, because no
+  iteration could move the cell away from zero:
+  ```{r}
+  bad_lower <- matrix(0, 3, 3); bad_lower[1, 1] <- 5
+  fit_imputed <- bras_freeze_sim(x0_with_zero, row_targets, col_targets,
+                                 lower = bad_lower)
+  fit_imputed$matrix[1, 1]  # at least 5, not 0
+  ```
+  Read the warning as a prompt to check your inputs. It usually means
+  that `x0` and the bounds do not agree.
+* **A row or column that depends on zero-seeded cells can be infeasible
+  even with the loosest bounds** (`lower = 0`, `upper = Inf`), because
+  those cells cannot contribute anything. The feasibility check of the
+  `bras_freeze_*()` functions knows this: it treats the achievable range
+  of a zero-seeded cell as `{0}`. Such a case is reported like any other
+  infeasibility.
+
+If a cell is zero in your seed only because of a data problem (rounding,
+suppression, a missing value), remember that RAS can never make it
+positive. This holds for every form of RAS, bounded or not. If the cell
+should be able to become positive, seed it with a small positive value
+instead of 0.
+
+## Comparing variants on the same problem
+
+All functions return the same `bras_fit` structure, so comparing them is
+direct. This is useful as a sanity check, and it is what a simulation
+study would automate:
+
+```{r}
+fits <- list(
+  freeze_sim  = bras_freeze_sim(x0, row_targets, col_targets, upper = upper),
+  freeze_seq  = bras_freeze_seq(x0, row_targets, col_targets, upper = upper),
+  naive       = bras_naive(x0, row_targets, col_targets, upper = upper),
+  soft        = bras_soft(x0, row_targets, col_targets, upper = upper),
+  cap_iter    = bras_cap_iter(x0, row_targets, col_targets, upper = upper)
+)
+```
+
+```{r, eval = requireNamespace("survey", quietly = TRUE) && requireNamespace("MASS", quietly = TRUE)}
+fits$calibrate_raking <- bras_calibrate_raking(x0, row_targets, col_targets, upper = upper)
+fits$calibrate_linear <- bras_calibrate_linear(x0, row_targets, col_targets, upper = upper)
+# bras_calibrate_logit() is left out on purpose. The section
+# "When bras_calibrate_logit() fails" below uses this same problem.
+```
+
+```{r}
+data.frame(
+  method    = names(fits),
+  converged = vapply(fits, function(f) f$converged, logical(1)),
+  max_row_err = vapply(fits, function(f) max(f$diagnostics$row_margin_error), numeric(1)),
+  max_col_err = vapply(fits, function(f) max(f$diagnostics$col_margin_error), numeric(1)),
+  dist_from_seed = vapply(fits, function(f) sum(abs(f$matrix - x0)), numeric(1))
+)
+```
+
+`dist_from_seed` is the L1 distance to the seed. It is a quick measure of
+how much each method changed the data. It is not a substitute for the
+divergence measures of a proper simulation study.
+
+Do not read this column as a ranking of all methods. The freeze family,
+`bras_naive()`, `bras_soft()`, `bras_cap_iter()` and
+`bras_calibrate_raking()` all change the data by multiplicative scaling,
+like classic RAS. `bras_calibrate_linear()` minimizes a least-squares
+distance. A smaller `dist_from_seed` for it does not mean it is closer to
+the right answer. It means that distance function chose a different
+matrix. Which distance to minimize is a modelling choice. Use
+`dist_from_seed` only to compare methods of the same family.
+
+## `bras_calibrate_linear()` and `bras_calibrate_raking()` give different matrices
+
+Both wrappers meet the same margins, but they do not return the same
+matrix. This is a reproducible case, with a fixed seed. It is the case
+used in the package's own cross-validation test
+(`tests/testthat/test-crossvalidation-and-properties.R`):
+
+```{r, eval = requireNamespace("survey", quietly = TRUE) && requireNamespace("MASS", quietly = TRUE)}
+set.seed(20260919)
+x0_cmp <- matrix(round(runif(16, 1, 20)), nrow = 4)
+row_targets_cmp <- round(runif(4, 80, 150))
+props <- runif(4); props <- props / sum(props)
+col_targets_cmp <- round(sum(row_targets_cmp) * props)
+col_targets_cmp[4] <- sum(row_targets_cmp) - sum(col_targets_cmp[1:3])
+
+fit_ras_cmp    <- ras(x0_cmp, row_targets_cmp, col_targets_cmp, tol = 1e-10, max_iter = 500)
+fit_raking_cmp <- bras_calibrate_raking(x0_cmp, row_targets_cmp, col_targets_cmp)
+fit_linear_cmp <- bras_calibrate_linear(x0_cmp, row_targets_cmp, col_targets_cmp)
+
+# raking is very close to our own engine (same distance function):
+max(abs(fit_ras_cmp$matrix - fit_raking_cmp$matrix))
+
+# linear is not, although it meets the same margins to the same tolerance:
+max(abs(fit_ras_cmp$matrix - fit_linear_cmp$matrix))
+rbind(row_ras = rowSums(fit_ras_cmp$matrix), row_linear = rowSums(fit_linear_cmp$matrix))
+```
+
+`bras_calibrate_raking()` agrees with `ras()` up to numerical tolerance.
+This is expected, because both minimize the same multiplicative distance.
+`bras_calibrate_linear()` meets the same margins, but some of its cells
+differ a lot from the `ras()` result. This is not numerical noise: its
+least-squares distance prefers another matrix.
+
+Both matrices are correct solutions of the constraints. They differ in
+which notion of "closest to the seed" selects among all valid matrices.
+Which one you need depends on what the adjustment is supposed to
+represent. `RASbound` cannot decide that for you.
+
+## When `bras_calibrate_logit()` fails
+
+`bras_calibrate_logit()` was left out of the comparison above on purpose.
+On this problem it fails:
+
+```{r, error = TRUE, eval = requireNamespace("survey", quietly = TRUE) && requireNamespace("MASS", quietly = TRUE)}
+# Self-contained: the running example again, so this chunk gives the same
+# result in whatever order the document is run.
+x0 <- matrix(c(2, 4, 9,
+               6, 8, 1,
+               3, 5, 7), nrow = 3, byrow = TRUE)
+row_targets <- c(25, 20, 25)
+col_targets <- c(20, 25, 25)
+upper <- matrix(c(Inf, Inf, 6,
+                  Inf, Inf, Inf,
+                  Inf, Inf, Inf), nrow = 3, byrow = TRUE)
+bras_calibrate_logit(x0, row_targets, col_targets, upper = upper)
+```
+
+The reason is the following. The bound `upper[1, 3] = 6` is tight, and
+the seed `x0[1, 3] = 9` is above it. The seed is therefore moved to
+exactly 6 before the calibration starts. The logit calibration needs
+finite bounds, so every `Inf` is replaced by `unbounded_mult *
+max(row_targets, col_targets)`. By default that is `20 * 25 = 500`. One
+cell sits on a real bound of 6 next to cells with a bound of 500, about
+80 times larger. With such different scales, the Newton-Raphson solve of
+the logit distance can diverge, which gives the error above.
+
+In practice, the automatic replacement of `Inf` works well when the
+bounds are on a similar scale, or when only a few cells really matter. It
+does not replace real finite bounds when you know that some cells need a
+tight limit. If you meet this failure on your own data, use
+`bras_calibrate_raking()` or `bras_calibrate_linear()`. Both accept `Inf`
+and need no replacement. Or use one of the `bras_freeze_*()` functions.
+
+## When `bras_freeze_hybrid()`'s per-pass fallback is not enough
+
+`bras_freeze_hybrid()` fixes all violating cells at once. If that would
+make a single pass infeasible, it falls back to sequential fixation for
+that pass only. This per-pass fallback does not make it as robust as
+`bras_freeze_seq()` in every case, as this real input shows:
+
+```{r}
+x0 <- matrix(c(29, 16, 22,
+               14,  4, 20,
+               27, 20, 23,
+               29, 23, 13,
+               26, 20, 12), nrow = 5, byrow = TRUE)
+row_targets <- c(91, 45, 67, 71, 70)
+col_targets <- c(133, 89, 122)
+upper <- matrix(c(40, 47, 27,
+                  17, 19, 13,
+                  44, 16, 17,
+                  29, 19, 41,
+                  25, 16, 33), nrow = 5, byrow = TRUE)
+
+fit_sim <- suppressWarnings(
+  bras_freeze_sim(x0, row_targets, col_targets, upper = upper, on_infeasible = "warning")
+)
+fit_seq <- suppressWarnings(
+  bras_freeze_seq(x0, row_targets, col_targets, upper = upper, on_infeasible = "warning")
+)
+fit_hybrid <- bras_freeze_hybrid(x0, row_targets, col_targets, upper = upper)
+
+data.frame(
+  method    = c("sim", "seq", "hybrid"),
+  feasible  = c(fit_sim$feasible, fit_seq$feasible, fit_hybrid$feasible),
+  converged = c(fit_sim$converged, fit_seq$converged, fit_hybrid$converged),
+  n_fixed   = c(nrow(fit_sim$fixed_cells), nrow(fit_seq$fixed_cells), nrow(fit_hybrid$fixed_cells))
+)
+```
+
+`sim` ends infeasible after fixing 10 cells, while `seq` solves the
+problem with only 5. `hybrid` also solves it, with 5 fixed cells. The
+per-pass fallback alone is not enough here. It looks at one pass at a
+time, and fixing a few more cells than necessary in several different
+passes can add up to an infeasible run, even if each pass looked fine on
+its own.
+
+For that reason `bras_freeze_hybrid()` has a second, global safety net.
+If the per-pass approach ends without a solution, it retries the whole
+problem from the start with sequential fixation, as `bras_freeze_seq()`
+does, before giving up. That is how `hybrid` succeeds here, and
+`fit$method` shows that this retry was used:
+
+```{r}
+fit_hybrid$method
+```
+
+## A stall: no violated bound, but the margins do not match
+
+A stall is a third outcome, different from infeasibility and from running
+out of `max_outer`. It is a known limitation of alternating-projection
+methods such as RAS. After enough cells are fixed, the free cells that
+remain in a row, and the columns they belong to, can reach a true fixed
+point that does not satisfy the margins. The margin error stops changing
+at all across iterations. It is not slow convergence.
+
+```{r}
+x0_stall <- matrix(c(4, 20,  5, 49,
+                     10, 41, 44, 35,
+                     29,  9, 24, 18,
+                     12, 30, 16, 46,
+                     46, 14,  6, 10), nrow = 5, byrow = TRUE)
+row_targets_stall <- c(95, 120, 63, 67, 134)
+col_targets_stall <- c(146, 215, 82, 36)
+upper_stall <- matrix(c(33, 31, 13, 39,
+                        35, 41, 13, 46,
+                        17, 34, 48,  6,
+                        23, 53, 51, 35,
+                        53, 57, 50, 52), nrow = 5, byrow = TRUE)
+
+fit_stall <- suppressWarnings(
+  bras_freeze_sim(x0_stall, row_targets_stall, col_targets_stall,
+                  upper = upper_stall, on_infeasible = "warning")
+)
+
+fit_stall$feasible             # TRUE: not proven infeasible
+fit_stall$converged            # FALSE: the margins are not matched
+fit_stall$diagnostics$stalled  # TRUE: a fixed point, not slow progress
+```
+
+The feasibility check done before solving cannot detect this. For each
+row and column separately, it checks whether the bounds of the remaining
+free cells can reach the residual target. That condition is necessary but
+not sufficient. A sufficient condition has to hold jointly for every
+subset of rows and columns (it is related to network-flow feasibility).
+That check is harder and is not implemented.
+
+**What to do.** A larger `max_iter` or `max_outer` will not help, and the
+warning says so. A stall often means that no matrix satisfies the targets
+and the bounds together. The last section of this vignette shows such a
+case on real data, with a simple test that proves it. You can loosen the
+bounds of the rows and columns involved. The largest values of
+`fit_stall$diagnostics$row_margin_error` and `col_margin_error` point to
+them. Or you can accept some residual mismatch, if that is tolerable for
+your use.
+
+## A real infeasible case: a stall with no solution behind it
+
+A real 55 x 55 input-output-style table (rounded to integers, and shipped
+in `inst/extdata` as the `infeasible_*.csv` files) shows a stall on real
+data, and how to confirm that the problem has no solution.
+
+```{r inf-data}
+read_mat <- function(f) {
+  as.matrix(utils::read.csv(system.file("extdata", f, package = "RASbound"),
+                            header = FALSE))
+}
+x0i <- unname(read_mat("infeasible_x0.csv"))
+upperi <- unname(read_mat("infeasible_upper.csv"))
+rti <- read_mat("infeasible_row_targets.csv")[, 1]
+cti <- read_mat("infeasible_col_targets.csv")[, 1]
+
+fit_i <- suppressWarnings(
+  bras_freeze_seq(x0i, rti, cti, upper = upperi,
+                  tol = 1e-6, max_iter = 1000, max_outer = 500,
+                  on_infeasible = "warning")
+)
+fit_i$converged
+fit_i$diagnostics$stalled
+```
+
+The simple feasibility check compares the target of each row and column
+with the total capacity of its cells. It passes here:
+
+```{r inf-simple}
+cap <- ifelse(x0i > 0, upperi, 0)   # effective capacity under RAS
+any(rti > rowSums(cap))
+any(cti > colSums(cap))
+```
+
+That check is necessary but not sufficient, because the cells of a row
+also have to respect the column targets. A set of cells can put at most
+`min(col_target, capacity)` into each column. For row 13:
+
+```{r inf-cert}
+i <- 13
+rti[i]                         # what the row must receive
+sum(cap[i, ])                  # its raw capacity: it looks sufficient
+sum(pmin(cti, cap[i, ]))       # what it can really absorb
+```
+
+Row 13 must receive more than it can absorb once the column totals are
+taken into account. So no matrix satisfies this problem, and the stall is
+the correct diagnosis. (Solving the transportation problem as a linear
+program or a maximum flow gives the same answer.) If every upper limit is
+relaxed by 25%, the problem has a solution:
+
+```{r inf-relaxed}
+fit_r <- suppressWarnings(
+  bras_freeze_seq(x0i, rti, cti, upper = round(upperi * 1.25),
+                  tol = 1e-6, max_iter = 1000, max_outer = 500,
+                  on_infeasible = "warning")
+)
+fit_r$converged
+```

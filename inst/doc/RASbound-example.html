@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>A worked example: a 57 x 57 input-output-style table</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">A worked example: a 57 x 57
+input-output-style table</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(RASbound)</span></code></pre></div>
+<p>This vignette applies the package to the kind of problem it was
+written for. A square, non-negative, input-output-style table must be
+adjusted to new row and column totals, and every cell must stay inside a
+plausible range. The data come from a real application. They are
+<strong>rounded to integers</strong> and ship with the package in
+<code>inst/extdata</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>read_mat <span class="ot">&lt;-</span> <span class="cf">function</span>(f) {</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="fu">as.matrix</span>(utils<span class="sc">::</span><span class="fu">read.csv</span>(<span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>, f, <span class="at">package =</span> <span class="st">&quot;RASbound&quot;</span>),</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                            <span class="at">header =</span> <span class="cn">FALSE</span>))</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>}</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>x0 <span class="ot">&lt;-</span> <span class="fu">unname</span>(<span class="fu">read_mat</span>(<span class="st">&quot;example_x0.csv&quot;</span>))</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>lower <span class="ot">&lt;-</span> <span class="fu">unname</span>(<span class="fu">read_mat</span>(<span class="st">&quot;example_lower.csv&quot;</span>))</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>upper <span class="ot">&lt;-</span> <span class="fu">unname</span>(<span class="fu">read_mat</span>(<span class="st">&quot;example_upper.csv&quot;</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>row_targets <span class="ot">&lt;-</span> <span class="fu">read_mat</span>(<span class="st">&quot;example_row_targets.csv&quot;</span>)[, <span class="dv">1</span>]</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>col_targets <span class="ot">&lt;-</span> <span class="fu">read_mat</span>(<span class="st">&quot;example_col_targets.csv&quot;</span>)[, <span class="dv">1</span>]</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="fu">dim</span>(x0)</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; [1] 57 57</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="fu">c</span>(<span class="fu">sum</span>(row_targets), <span class="fu">sum</span>(col_targets))</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; [1] 115090168 115090168</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="fu">sum</span>(x0 <span class="sc">==</span> <span class="dv">0</span>)                  <span class="co"># exact zeros in the seed</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; [1] 458</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="fu">sum</span>(lower <span class="sc">&gt;</span> <span class="dv">0</span>)                <span class="co"># cells with a positive lower bound</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; [1] 2075</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="fu">tail</span>(row_targets, <span class="dv">3</span>)          <span class="co"># the last two rows (and columns) have target 0</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; [1] 80197     0     0</span></span></code></pre></div>
+<p>This input is demanding for three reasons. Many cells have a positive
+lower bound as well as an upper bound. The seed contains exact zeros.
+And the last two rows and columns have a target of exactly 0.</p>
+<div id="hard-freeze-variants" class="section level2">
+<h2>Hard-freeze variants</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>args <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x0 =</span> x0, <span class="at">row_targets =</span> row_targets, <span class="at">col_targets =</span> col_targets,</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>             <span class="at">lower =</span> lower, <span class="at">upper =</span> upper,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>             <span class="at">tol =</span> <span class="fl">1e-6</span>, <span class="at">max_iter =</span> <span class="dv">1000</span>, <span class="at">max_outer =</span> <span class="dv">500</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>fit_sim <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">do.call</span>(bras_freeze_sim, args))</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>fit_seq <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">do.call</span>(bras_freeze_seq, args))</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>fit_hyb <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">do.call</span>(bras_freeze_hybrid, args))</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">sapply</span>(<span class="fu">list</span>(<span class="at">sim =</span> fit_sim, <span class="at">seq =</span> fit_seq, <span class="at">hybrid =</span> fit_hyb),</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>       <span class="cf">function</span>(f) <span class="fu">c</span>(<span class="at">converged =</span> f<span class="sc">$</span>converged,</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>                     <span class="at">feasible =</span> f<span class="sc">$</span>feasible,</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>                     <span class="at">n_fixed =</span> <span class="fu">nrow</span>(f<span class="sc">$</span>fixed_cells)))</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;           sim seq hybrid</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; converged   1   1      1</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; feasible    1   1      1</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; n_fixed    35  34     35</span></span></code></pre></div>
+<p>Every cell should respect its range, and the margins should be
+matched:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>ok <span class="ot">&lt;-</span> <span class="cf">function</span>(f) <span class="fu">c</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">within_bounds =</span> <span class="fu">all</span>(f<span class="sc">$</span>matrix <span class="sc">&gt;=</span> lower <span class="sc">-</span> <span class="fl">1e-6</span> <span class="sc">&amp;</span> f<span class="sc">$</span>matrix <span class="sc">&lt;=</span> upper <span class="sc">+</span> <span class="fl">1e-6</span>),</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">max_margin_error =</span> <span class="fu">max</span>(f<span class="sc">$</span>diagnostics<span class="sc">$</span>row_margin_error,</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>                         f<span class="sc">$</span>diagnostics<span class="sc">$</span>col_margin_error)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="fu">sapply</span>(<span class="fu">list</span>(<span class="at">sim =</span> fit_sim, <span class="at">seq =</span> fit_seq, <span class="at">hybrid =</span> fit_hyb), ok)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;                           sim          seq       hybrid</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; within_bounds    1.000000e+00 1.000000e+00 1.000000e+00</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; max_margin_error 7.674098e-07 7.674098e-07 7.674098e-07</span></span></code></pre></div>
+<p>The variants fix cells in a different order. When several bounds bind
+at once, they can return slightly different matrices. This is how far
+apart they are:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">max</span>(<span class="fu">abs</span>(fit_sim<span class="sc">$</span>matrix <span class="sc">-</span> fit_seq<span class="sc">$</span>matrix))</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; [1] 2803.843</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">max</span>(<span class="fu">abs</span>(fit_sim<span class="sc">$</span>matrix <span class="sc">-</span> fit_hyb<span class="sc">$</span>matrix))</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span></code></pre></div>
+</div>
+<div id="where-the-bounds-bind" class="section level2">
+<h2>Where the bounds bind</h2>
+<p><code>plot()</code> shows the fitted matrix and marks the cells that
+were fixed at a bound. An upward triangle is a cell at its upper bound,
+and a downward triangle is a cell at its lower bound:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">plot</span>(fit_seq)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>The exact cells and values are in <code>fit_seq$fixed_cells</code>.
+If your matrix has row and column names, <code>plot()</code> shows them
+as axis labels. See <code>?plot.bras_fit</code> for how to read the
+colours.</p>
+</div>
+<div id="the-survey-wrappers-on-the-same-problem" class="section level2">
+<h2>The <code>survey</code> wrappers on the same problem</h2>
+<p>The <code>bras_calibrate_*()</code> wrappers remove the rows and
+columns with a zero target before calling <code>survey</code>, and put
+them back as zeros afterwards. On the original, unrounded version of
+this table, all three wrappers still failed inside
+<code>survey::calibrate()</code>. The cause is not known. This is what
+they return on the rounded data:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>try_wrapper <span class="ot">&lt;-</span> <span class="cf">function</span>(f) {</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="fu">tryCatch</span>({</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">f</span>(x0, row_targets, col_targets,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>                              <span class="at">lower =</span> lower, <span class="at">upper =</span> upper))</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="st">&quot;returned; converged =&quot;</span>, fit<span class="sc">$</span>converged)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>  }, <span class="at">error =</span> <span class="cf">function</span>(e) <span class="fu">paste</span>(<span class="st">&quot;failed:&quot;</span>, <span class="fu">substr</span>(<span class="fu">conditionMessage</span>(e), <span class="dv">1</span>, <span class="dv">70</span>)))</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>}</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="fu">c</span>(<span class="at">raking =</span> <span class="fu">try_wrapper</span>(bras_calibrate_raking),</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  <span class="at">linear =</span> <span class="fu">try_wrapper</span>(bras_calibrate_linear))</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;                                                                             raking </span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; &quot;failed: survey::calibrate(calfun = \&quot;raking\&quot;) failed: Calibration failed. See ?&quot; </span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;                                                                             linear </span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; &quot;failed: survey::calibrate(calfun = \&quot;linear\&quot;) failed: Calibration failed. See ?&quot;</span></span></code></pre></div>
+<p>If a wrapper fails on a real table like this one, use a
+<code>bras_freeze_*()</code> function instead.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
